@@ -780,185 +780,323 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let rect = NSRect(x: 0, y: 0, width: 960, height: 720)
         controlWindow = NSWindow(
             contentRect: rect,
-            styleMask: [.titled, .closable, .miniaturizable],
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        controlWindow.title = "SportWork"
+        controlWindow.titlebarAppearsTransparent = true
+        controlWindow.title = ""
+        controlWindow.isMovableByWindowBackground = true
         controlWindow.center()
         controlWindow.isReleasedWhenClosed = false
 
-        guard let contentView = controlWindow.contentView else { return }
+        let effectView = NSVisualEffectView(frame: rect)
+        effectView.material = .underWindowBackground
+        effectView.state = .active
+        effectView.translatesAutoresizingMaskIntoConstraints = false
+        controlWindow.contentView = effectView
 
-        contentView.wantsLayer = true
-        contentView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        flashBannerLabel = NSTextField(labelWithString: "")
+        flashBannerLabel.alignment = .center
+        flashBannerLabel.font = .boldSystemFont(ofSize: 18)
+        flashBannerLabel.textColor = .white
+        flashBannerLabel.wantsLayer = true
+        flashBannerLabel.layer?.cornerRadius = 12
+        flashBannerLabel.layer?.masksToBounds = true
+        flashBannerLabel.drawsBackground = true
+        flashBannerLabel.isHidden = true
+        flashBannerLabel.translatesAutoresizingMaskIntoConstraints = false
+        effectView.addSubview(flashBannerLabel)
+
+        let contentStack = NSStackView()
+        contentStack.orientation = .vertical
+        contentStack.alignment = .leading
+        contentStack.spacing = 22
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        effectView.addSubview(contentStack)
+
+        NSLayoutConstraint.activate([
+            flashBannerLabel.topAnchor.constraint(equalTo: effectView.topAnchor, constant: 18),
+            flashBannerLabel.leadingAnchor.constraint(equalTo: effectView.leadingAnchor, constant: 20),
+            flashBannerLabel.trailingAnchor.constraint(equalTo: effectView.trailingAnchor, constant: -20),
+            flashBannerLabel.heightAnchor.constraint(equalToConstant: 44),
+
+            contentStack.topAnchor.constraint(equalTo: flashBannerLabel.bottomAnchor, constant: 22),
+            contentStack.leadingAnchor.constraint(equalTo: effectView.leadingAnchor, constant: 28),
+            contentStack.trailingAnchor.constraint(equalTo: effectView.trailingAnchor, constant: -28),
+            contentStack.bottomAnchor.constraint(lessThanOrEqualTo: effectView.bottomAnchor, constant: -28)
+        ])
 
         let titleLabel = NSTextField(labelWithString: "SportWork")
         titleLabel.font = .systemFont(ofSize: 34, weight: .bold)
-        titleLabel.frame = NSRect(x: 32, y: 662, width: 320, height: 40)
-        contentView.addSubview(titleLabel)
+        titleLabel.textColor = .labelColor
 
         let subtitleLabel = NSTextField(labelWithString: "极简专注节奏控制台")
         subtitleLabel.font = .systemFont(ofSize: 15, weight: .medium)
         subtitleLabel.textColor = .secondaryLabelColor
-        subtitleLabel.frame = NSRect(x: 34, y: 638, width: 280, height: 22)
-        contentView.addSubview(subtitleLabel)
 
-        flashBannerLabel = NSTextField(labelWithString: "")
-        flashBannerLabel.alignment = .center
-        flashBannerLabel.font = .boldSystemFont(ofSize: 16)
-        flashBannerLabel.frame = NSRect(x: 32, y: 590, width: 896, height: 38)
-        flashBannerLabel.isHidden = true
-        flashBannerLabel.wantsLayer = true
-        flashBannerLabel.layer?.cornerRadius = 10
-        flashBannerLabel.layer?.masksToBounds = true
-        contentView.addSubview(flashBannerLabel)
+        let headerStack = NSStackView(views: [titleLabel, subtitleLabel])
+        headerStack.orientation = .vertical
+        headerStack.alignment = .leading
+        headerStack.spacing = 4
+        contentStack.addArrangedSubview(headerStack)
 
-        phaseCardView = makeCard(frame: NSRect(x: 32, y: 430, width: 896, height: 138))
-        contentView.addSubview(phaseCardView)
+        phaseCardView = makeCard(frame: .zero)
+        phaseCardView.translatesAutoresizingMaskIntoConstraints = false
+        phaseCardView.widthAnchor.constraint(equalToConstant: 904).isActive = true
+        phaseCardView.heightAnchor.constraint(equalToConstant: 156).isActive = true
 
-        let phaseCardTitle = NSTextField(labelWithString: "当前状态")
-        phaseCardTitle.font = .systemFont(ofSize: 14, weight: .semibold)
-        phaseCardTitle.textColor = .secondaryLabelColor
-        phaseCardTitle.frame = NSRect(x: 28, y: 102, width: 140, height: 20)
-        phaseCardView.addSubview(phaseCardTitle)
-
+        let phaseCardTitle = makeSectionTitle("当前状态", origin: .zero)
         controlStatusLabel = NSTextField(labelWithString: "状态载入中…")
         controlStatusLabel.font = .systemFont(ofSize: 30, weight: .bold)
-        controlStatusLabel.frame = NSRect(x: 28, y: 60, width: 360, height: 36)
-        phaseCardView.addSubview(controlStatusLabel)
+        controlStatusLabel.textColor = .labelColor
+        controlStatusLabel.isBordered = false
+        controlStatusLabel.drawsBackground = false
 
         countdownValueLabel = NSTextField(labelWithString: "00:00")
         countdownValueLabel.font = .monospacedDigitSystemFont(ofSize: 48, weight: .bold)
-        countdownValueLabel.frame = NSRect(x: 28, y: 8, width: 280, height: 52)
-        phaseCardView.addSubview(countdownValueLabel)
+        countdownValueLabel.textColor = .labelColor
+        countdownValueLabel.isBordered = false
+        countdownValueLabel.drawsBackground = false
 
         controlHintLabel = NSTextField(labelWithString: "菜单栏将显示当前阶段")
         controlHintLabel.font = .systemFont(ofSize: 15, weight: .medium)
         controlHintLabel.textColor = .secondaryLabelColor
-        controlHintLabel.frame = NSRect(x: 420, y: 72, width: 420, height: 22)
-        phaseCardView.addSubview(controlHintLabel)
+        controlHintLabel.isBordered = false
+        controlHintLabel.drawsBackground = false
 
-        let helpLabel = NSTextField(wrappingLabelWithString: "菜单栏默认只显示当前阶段，避免分散注意力。所有设置都集中在这个主窗口里：先看状态，再操作按钮，最后调整提醒和时长。")
+        let helpLabel = NSTextField(wrappingLabelWithString: "菜单栏默认只显示当前阶段，避免分散注意力。所有设置都集中在主窗口里：先看状态，再做操作，再调整提醒与时长。")
         helpLabel.font = .systemFont(ofSize: 13)
         helpLabel.textColor = .secondaryLabelColor
-        helpLabel.frame = NSRect(x: 420, y: 20, width: 430, height: 42)
-        phaseCardView.addSubview(helpLabel)
+        helpLabel.maximumNumberOfLines = 2
+        helpLabel.preferredMaxLayoutWidth = 420
 
-        let quickCard = makeCard(frame: NSRect(x: 32, y: 316, width: 896, height: 90))
-        contentView.addSubview(quickCard)
-        quickCard.addSubview(makeSectionTitle("快速操作", x: 24, y: 56))
+        let phaseLeftStack = NSStackView(views: [phaseCardTitle, controlStatusLabel, countdownValueLabel])
+        phaseLeftStack.orientation = NSUserInterfaceLayoutOrientation.vertical
+        phaseLeftStack.alignment = NSLayoutConstraint.Attribute.leading
+        phaseLeftStack.spacing = 8
+
+        let phaseRightStack = NSStackView(views: [controlHintLabel, helpLabel])
+        phaseRightStack.orientation = NSUserInterfaceLayoutOrientation.vertical
+        phaseRightStack.alignment = NSLayoutConstraint.Attribute.leading
+        phaseRightStack.spacing = 14
+
+        let phaseContent = NSStackView(views: [phaseLeftStack, phaseRightStack])
+        phaseContent.orientation = NSUserInterfaceLayoutOrientation.horizontal
+        phaseContent.alignment = NSLayoutConstraint.Attribute.top
+        phaseContent.distribution = NSStackView.Distribution.fillEqually
+        phaseContent.spacing = 36
+        phaseContent.edgeInsets = NSEdgeInsets(top: 24, left: 28, bottom: 24, right: 28)
+        phaseContent.translatesAutoresizingMaskIntoConstraints = false
+        phaseCardView.addSubview(phaseContent)
+
+        NSLayoutConstraint.activate([
+            phaseContent.topAnchor.constraint(equalTo: phaseCardView.topAnchor),
+            phaseContent.leadingAnchor.constraint(equalTo: phaseCardView.leadingAnchor),
+            phaseContent.trailingAnchor.constraint(equalTo: phaseCardView.trailingAnchor),
+            phaseContent.bottomAnchor.constraint(equalTo: phaseCardView.bottomAnchor)
+        ])
+
+        contentStack.addArrangedSubview(phaseCardView)
+
+        let quickCard = makeCard(frame: .zero)
+        quickCard.translatesAutoresizingMaskIntoConstraints = false
+        quickCard.widthAnchor.constraint(equalToConstant: 904).isActive = true
+        quickCard.heightAnchor.constraint(equalToConstant: 96).isActive = true
+        quickCard.addSubview(makeSectionTitle("快速操作", origin: NSPoint(x: 24, y: 62)))
 
         pauseResumeButton = NSButton(title: "暂停计时", target: self, action: #selector(togglePause))
-        pauseResumeButton.frame = NSRect(x: 24, y: 18, width: 138, height: 36)
-        stylePrimaryButton(pauseResumeButton)
-        quickCard.addSubview(pauseResumeButton)
-
         let moveNowButton = NSButton(title: "立即切到活动", target: self, action: #selector(startMoveNow))
-        moveNowButton.frame = NSRect(x: 176, y: 18, width: 150, height: 36)
-        styleSecondaryButton(moveNowButton)
-        quickCard.addSubview(moveNowButton)
-
         let resetButton = NSButton(title: "重置循环", target: self, action: #selector(resetCycle))
-        resetButton.frame = NSRect(x: 340, y: 18, width: 126, height: 36)
-        styleSecondaryButton(resetButton)
-        quickCard.addSubview(resetButton)
-
         let hideButton = NSButton(title: "隐藏窗口", target: self, action: #selector(hideControlWindow))
-        hideButton.frame = NSRect(x: 480, y: 18, width: 126, height: 36)
-        styleSecondaryButton(hideButton)
-        quickCard.addSubview(hideButton)
-
         let quitButton = NSButton(title: "退出应用", target: self, action: #selector(quit))
-        quitButton.frame = NSRect(x: 620, y: 18, width: 126, height: 36)
-        styleSecondaryButton(quitButton)
-        quickCard.addSubview(quitButton)
 
-        let displayCard = makeCard(frame: NSRect(x: 32, y: 152, width: 430, height: 132))
-        contentView.addSubview(displayCard)
-        displayCard.addSubview(makeSectionTitle("显示与启动", x: 24, y: 92))
+        [pauseResumeButton, moveNowButton, resetButton, hideButton, quitButton].forEach { button in
+            styleButton(button, primary: button == pauseResumeButton)
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.widthAnchor.constraint(equalToConstant: button == moveNowButton ? 148 : 128).isActive = true
+            button.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        }
+
+        let quickButtons = NSStackView(views: [pauseResumeButton, moveNowButton, resetButton, hideButton, quitButton].compactMap { $0 })
+        quickButtons.orientation = .horizontal
+        quickButtons.alignment = .centerY
+        quickButtons.spacing = 14
+        quickButtons.edgeInsets = NSEdgeInsets(top: 0, left: 24, bottom: 18, right: 24)
+        quickButtons.translatesAutoresizingMaskIntoConstraints = false
+        quickCard.addSubview(quickButtons)
+
+        NSLayoutConstraint.activate([
+            quickButtons.leadingAnchor.constraint(equalTo: quickCard.leadingAnchor),
+            quickButtons.trailingAnchor.constraint(lessThanOrEqualTo: quickCard.trailingAnchor),
+            quickButtons.bottomAnchor.constraint(equalTo: quickCard.bottomAnchor)
+        ])
+
+        contentStack.addArrangedSubview(quickCard)
+
+        let lowerRow = NSStackView()
+        lowerRow.orientation = .horizontal
+        lowerRow.alignment = .top
+        lowerRow.spacing = 22
+        lowerRow.distribution = .fillEqually
+        lowerRow.translatesAutoresizingMaskIntoConstraints = false
+
+        let leftColumn = NSStackView()
+        leftColumn.orientation = .vertical
+        leftColumn.alignment = .leading
+        leftColumn.spacing = 22
+
+        let displayCard = makeCard(frame: .zero)
+        displayCard.translatesAutoresizingMaskIntoConstraints = false
+        displayCard.widthAnchor.constraint(equalToConstant: 441).isActive = true
+        displayCard.heightAnchor.constraint(equalToConstant: 144).isActive = true
+        displayCard.addSubview(makeSectionTitle("显示与启动", origin: NSPoint(x: 24, y: 102)))
 
         menuCountdownCheckbox = NSButton(checkboxWithTitle: "菜单栏显示倒计时", target: self, action: #selector(toggleMenuCountdownVisibility))
-        menuCountdownCheckbox.frame = NSRect(x: 24, y: 52, width: 220, height: 24)
-        styleCheckbox(menuCountdownCheckbox)
-        displayCard.addSubview(menuCountdownCheckbox)
-
         startupCheckbox = NSButton(checkboxWithTitle: "开机自动启动", target: self, action: #selector(toggleLaunchAtLoginFromCheckbox))
-        startupCheckbox.frame = NSRect(x: 24, y: 22, width: 180, height: 24)
-        styleCheckbox(startupCheckbox)
-        displayCard.addSubview(startupCheckbox)
+        [menuCountdownCheckbox, startupCheckbox].forEach { checkbox in
+            styleCheckbox(checkbox)
+            checkbox.translatesAutoresizingMaskIntoConstraints = false
+        }
 
-        let reminderCard = makeCard(frame: NSRect(x: 486, y: 152, width: 442, height: 256))
-        contentView.addSubview(reminderCard)
-        reminderCard.addSubview(makeSectionTitle("提醒策略", x: 24, y: 216))
+        let displayOptions = NSStackView(views: [menuCountdownCheckbox, startupCheckbox])
+        displayOptions.orientation = .vertical
+        displayOptions.alignment = .leading
+        displayOptions.spacing = 14
+        displayOptions.edgeInsets = NSEdgeInsets(top: 0, left: 24, bottom: 20, right: 24)
+        displayOptions.translatesAutoresizingMaskIntoConstraints = false
+        displayCard.addSubview(displayOptions)
 
-        microReminderCheckbox = NSButton(checkboxWithTitle: "开启每 3 分钟回神闪动", target: self, action: #selector(toggleMicroReminders))
-        microReminderCheckbox.frame = NSRect(x: 24, y: 182, width: 240, height: 24)
-        styleCheckbox(microReminderCheckbox)
-        reminderCard.addSubview(microReminderCheckbox)
+        NSLayoutConstraint.activate([
+            displayOptions.leadingAnchor.constraint(equalTo: displayCard.leadingAnchor),
+            displayOptions.trailingAnchor.constraint(lessThanOrEqualTo: displayCard.trailingAnchor),
+            displayOptions.bottomAnchor.constraint(equalTo: displayCard.bottomAnchor)
+        ])
 
-        let majorModeLabel = makeFieldLabel("阶段切换提醒", x: 24, y: 140)
-        reminderCard.addSubview(majorModeLabel)
+        let durationCard = makeCard(frame: .zero)
+        durationCard.translatesAutoresizingMaskIntoConstraints = false
+        durationCard.widthAnchor.constraint(equalToConstant: 441).isActive = true
+        durationCard.heightAnchor.constraint(equalToConstant: 124).isActive = true
+        durationCard.addSubview(makeSectionTitle("时长设置", origin: NSPoint(x: 24, y: 82)))
 
-        majorModePopup = NSPopUpButton(frame: NSRect(x: 154, y: 136, width: 250, height: 30), pullsDown: false)
-        majorModePopup.addItems(withTitles: [ReminderMode.flash.menuLabel, ReminderMode.systemNotification.menuLabel])
-        majorModePopup.target = self
-        majorModePopup.action = #selector(majorReminderModeChanged)
-        stylePopup(majorModePopup)
-        reminderCard.addSubview(majorModePopup)
+        let focusLabel = makeFieldLabel("专注分钟数")
+        let exerciseLabel = makeFieldLabel("活动分钟数")
 
-        let majorFlashLabel = makeFieldLabel("阶段切换闪烁", x: 24, y: 92)
-        reminderCard.addSubview(majorFlashLabel)
-
-        majorFlashBehaviorPopup = NSPopUpButton(frame: NSRect(x: 154, y: 88, width: 250, height: 30), pullsDown: false)
-        majorFlashBehaviorPopup.addItems(withTitles: [FlashBehavior.untilClicked.menuLabel, FlashBehavior.threeBlinks.menuLabel])
-        majorFlashBehaviorPopup.target = self
-        majorFlashBehaviorPopup.action = #selector(majorFlashBehaviorChanged)
-        stylePopup(majorFlashBehaviorPopup)
-        reminderCard.addSubview(majorFlashBehaviorPopup)
-
-        let microModeLabel = makeFieldLabel("3 分钟提醒", x: 24, y: 44)
-        reminderCard.addSubview(microModeLabel)
-
-        microModePopup = NSPopUpButton(frame: NSRect(x: 154, y: 40, width: 250, height: 30), pullsDown: false)
-        microModePopup.addItems(withTitles: [ReminderMode.flash.menuLabel, ReminderMode.systemNotification.menuLabel])
-        microModePopup.target = self
-        microModePopup.action = #selector(microReminderModeChanged)
-        stylePopup(microModePopup)
-        reminderCard.addSubview(microModePopup)
-
-        let microFlashLabel = makeFieldLabel("回神闪烁", x: 24, y: -4)
-        reminderCard.addSubview(microFlashLabel)
-
-        microFlashBehaviorPopup = NSPopUpButton(frame: NSRect(x: 154, y: -8, width: 250, height: 30), pullsDown: false)
-        microFlashBehaviorPopup.addItems(withTitles: [FlashBehavior.untilClicked.menuLabel, FlashBehavior.threeBlinks.menuLabel])
-        microFlashBehaviorPopup.target = self
-        microFlashBehaviorPopup.action = #selector(microFlashBehaviorChanged)
-        stylePopup(microFlashBehaviorPopup)
-        reminderCard.addSubview(microFlashBehaviorPopup)
-
-        let durationCard = makeCard(frame: NSRect(x: 32, y: 24, width: 430, height: 108))
-        contentView.addSubview(durationCard)
-        durationCard.addSubview(makeSectionTitle("时长设置", x: 24, y: 68))
-
-        let focusLabel = makeFieldLabel("专注分钟数", x: 24, y: 28)
-        durationCard.addSubview(focusLabel)
-
-        focusMinutesField = NSTextField(frame: NSRect(x: 118, y: 24, width: 64, height: 30))
-        styleTextField(focusMinutesField)
-        durationCard.addSubview(focusMinutesField)
-
-        let exerciseLabel = makeFieldLabel("活动分钟数", x: 204, y: 28)
-        durationCard.addSubview(exerciseLabel)
-
-        exerciseMinutesField = NSTextField(frame: NSRect(x: 298, y: 24, width: 64, height: 30))
-        styleTextField(exerciseMinutesField)
-        durationCard.addSubview(exerciseMinutesField)
+        focusMinutesField = NSTextField(string: "")
+        exerciseMinutesField = NSTextField(string: "")
+        [focusMinutesField, exerciseMinutesField].forEach { field in
+            styleTextField(field)
+            field.translatesAutoresizingMaskIntoConstraints = false
+            field.widthAnchor.constraint(equalToConstant: 72).isActive = true
+            field.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        }
 
         let applyButton = NSButton(title: "应用时长", target: self, action: #selector(applyDurationsFromWindow))
-        applyButton.frame = NSRect(x: 338, y: 64, width: 76, height: 30)
-        stylePrimaryButton(applyButton)
-        durationCard.addSubview(applyButton)
+        styleButton(applyButton, primary: true)
+        applyButton.translatesAutoresizingMaskIntoConstraints = false
+        applyButton.widthAnchor.constraint(equalToConstant: 92).isActive = true
+        applyButton.heightAnchor.constraint(equalToConstant: 34).isActive = true
+
+        let durationRow = NSStackView()
+        durationRow.orientation = .horizontal
+        durationRow.alignment = .centerY
+        durationRow.spacing = 12
+        durationRow.edgeInsets = NSEdgeInsets(top: 0, left: 24, bottom: 18, right: 24)
+        durationRow.translatesAutoresizingMaskIntoConstraints = false
+
+        [focusLabel, focusMinutesField, exerciseLabel, exerciseMinutesField, applyButton].forEach {
+            durationRow.addArrangedSubview($0)
+        }
+        durationCard.addSubview(durationRow)
+
+        NSLayoutConstraint.activate([
+            durationRow.leadingAnchor.constraint(equalTo: durationCard.leadingAnchor),
+            durationRow.trailingAnchor.constraint(lessThanOrEqualTo: durationCard.trailingAnchor, constant: -24),
+            durationRow.bottomAnchor.constraint(equalTo: durationCard.bottomAnchor)
+        ])
+
+        leftColumn.addArrangedSubview(displayCard)
+        leftColumn.addArrangedSubview(durationCard)
+
+        let reminderCard = makeCard(frame: .zero)
+        reminderCard.translatesAutoresizingMaskIntoConstraints = false
+        reminderCard.widthAnchor.constraint(equalToConstant: 441).isActive = true
+        reminderCard.heightAnchor.constraint(equalToConstant: 290).isActive = true
+        reminderCard.addSubview(makeSectionTitle("提醒策略", origin: NSPoint(x: 24, y: 248)))
+
+        microReminderCheckbox = NSButton(checkboxWithTitle: "开启每 3 分钟回神提醒", target: self, action: #selector(toggleMicroReminders))
+        styleCheckbox(microReminderCheckbox)
+        microReminderCheckbox.translatesAutoresizingMaskIntoConstraints = false
+        reminderCard.addSubview(microReminderCheckbox)
+
+        majorModePopup = createPopup(items: [ReminderMode.flash.menuLabel, ReminderMode.systemNotification.menuLabel], action: #selector(majorReminderModeChanged))
+        majorFlashBehaviorPopup = createPopup(items: [FlashBehavior.untilClicked.menuLabel, FlashBehavior.threeBlinks.menuLabel], action: #selector(majorFlashBehaviorChanged))
+        microModePopup = createPopup(items: [ReminderMode.flash.menuLabel, ReminderMode.systemNotification.menuLabel], action: #selector(microReminderModeChanged))
+        microFlashBehaviorPopup = createPopup(items: [FlashBehavior.untilClicked.menuLabel, FlashBehavior.threeBlinks.menuLabel], action: #selector(microFlashBehaviorChanged))
+
+        [majorModePopup, majorFlashBehaviorPopup, microModePopup, microFlashBehaviorPopup].forEach { popup in
+            popup.translatesAutoresizingMaskIntoConstraints = false
+            popup.widthAnchor.constraint(equalToConstant: 252).isActive = true
+            popup.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        }
+
+        let reminderGrid = NSGridView(views: [
+            [makeFieldLabel("阶段切换提醒"), majorModePopup],
+            [makeFieldLabel("阶段切换闪烁"), majorFlashBehaviorPopup],
+            [makeFieldLabel("回神提醒"), microModePopup],
+            [makeFieldLabel("回神闪烁"), microFlashBehaviorPopup]
+        ])
+        reminderGrid.rowSpacing = 14
+        reminderGrid.columnSpacing = 18
+        reminderGrid.translatesAutoresizingMaskIntoConstraints = false
+        reminderCard.addSubview(reminderGrid)
+
+        NSLayoutConstraint.activate([
+            microReminderCheckbox.leadingAnchor.constraint(equalTo: reminderCard.leadingAnchor, constant: 24),
+            microReminderCheckbox.topAnchor.constraint(equalTo: reminderCard.topAnchor, constant: 56),
+
+            reminderGrid.leadingAnchor.constraint(equalTo: reminderCard.leadingAnchor, constant: 24),
+            reminderGrid.topAnchor.constraint(equalTo: microReminderCheckbox.bottomAnchor, constant: 18)
+        ])
+
+        lowerRow.addArrangedSubview(leftColumn)
+        lowerRow.addArrangedSubview(reminderCard)
+        contentStack.addArrangedSubview(lowerRow)
+    }
+
+    private func makeLabel(_ text: String) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = .secondaryLabelColor
+        label.isBordered = false
+        label.drawsBackground = false
+        return label
+    }
+
+    private func makeSectionTitle(_ text: String, origin: NSPoint) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = .systemFont(ofSize: 15, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        label.frame = NSRect(origin: origin, size: NSSize(width: 180, height: 20))
+        return label
+    }
+
+    private func makeFieldLabel(_ text: String) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = .labelColor
+        label.alignment = .right
+        label.frame = NSRect(x: 0, y: 0, width: 110, height: 20)
+        return label
+    }
+
+    private func createPopup(items: [String], action: Selector) -> NSPopUpButton {
+        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        popup.addItems(withTitles: items)
+        popup.target = self
+        popup.action = action
+        popup.font = .systemFont(ofSize: 13)
+        return popup
     }
 
     private func makeCard(frame: NSRect) -> NSView {
@@ -966,41 +1104,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         view.wantsLayer = true
         view.layer?.cornerRadius = 20
         view.layer?.masksToBounds = true
-        view.layer?.backgroundColor = NSColor(calibratedWhite: 0.98, alpha: 1.0).cgColor
+        view.layer?.backgroundColor = NSColor(calibratedWhite: 0.98, alpha: 1).cgColor
         view.layer?.borderWidth = 1
-        view.layer?.borderColor = NSColor(calibratedWhite: 0.0, alpha: 0.06).cgColor
+        view.layer?.borderColor = NSColor(calibratedWhite: 0, alpha: 0.06).cgColor
         return view
     }
 
-    private func makeSectionTitle(_ title: String, x: CGFloat, y: CGFloat) -> NSTextField {
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 15, weight: .semibold)
-        label.textColor = .secondaryLabelColor
-        label.frame = NSRect(x: x, y: y, width: 160, height: 20)
-        return label
-    }
-
-    private func makeFieldLabel(_ title: String, x: CGFloat, y: CGFloat) -> NSTextField {
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 13, weight: .medium)
-        label.textColor = .labelColor
-        label.frame = NSRect(x: x, y: y, width: 120, height: 20)
-        return label
-    }
-
-    private func stylePrimaryButton(_ button: NSButton) {
+    private func styleButton(_ button: NSButton, primary: Bool) {
         button.bezelStyle = .rounded
         button.controlSize = .large
-    }
-
-    private func styleSecondaryButton(_ button: NSButton) {
-        button.bezelStyle = .rounded
-        button.controlSize = .large
-    }
-
-    private func stylePopup(_ popup: NSPopUpButton) {
-        popup.font = .systemFont(ofSize: 13)
-        popup.controlSize = .regular
+        if primary {
+            button.contentTintColor = .controlAccentColor
+        }
     }
 
     private func styleTextField(_ field: NSTextField) {
